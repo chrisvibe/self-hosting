@@ -9,6 +9,21 @@ services:
     networks:
       - web
 
+  proxy:
+    image: nginx:alpine
+    container_name: lan-proxy
+    restart: unless-stopped
+    ports:
+      - "${LOCAL_IP}:80:80"
+      - "${LOCAL_IP}:443:443"
+    volumes:
+      - ./nginx/conf.d/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    networks:
+      - web
+    depends_on:
+      - cloudflared
+
 networks:
   web:
     external: true

@@ -1,10 +1,14 @@
 # Matrix service override for self-hosting infrastructure
 # This file connects Matrix nginx to the shared tunnel network
-# Store in: self-hosting/overrides/matrix.override.yaml
+# Port exposure removed - LAN proxy handles routing
 
 services:
   nginx:
     container_name: matrix-nginx
+    ports: !override
+      # Remove HTTP port - proxy handles it
+      # Keep federation port exposed directly (needs SSL)
+      - "${LOCAL_IP}:8448:8448"
     networks:
       - net        # Internal Matrix network (from base compose)
       - web        # External tunnel network (shared)

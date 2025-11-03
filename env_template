@@ -1,2 +1,8 @@
 # Cloudflare Tunnel Configuration
 CLOUDFLARE_TUNNEL_TOKEN='YOUR_CLOUDFLARE_TUNNEL_TOKEN_HERE'
+
+# Local Network Configuration
+LOCAL_IP=192.168.1.123
+
+# Other
+DOMAIN=yourdomain.com

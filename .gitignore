@@ -4,3 +4,6 @@
 # All service directories are submodules
 # They manage their own .gitignore files
 services/
+
+nginx/conf.d/
+nginx/ssl/

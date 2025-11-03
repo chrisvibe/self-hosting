@@ -1,10 +1,16 @@
+# Nextcloud service override for self-hosting infrastructure
+# Connects Nextcloud to shared tunnel network
+# Port exposure removed - LAN proxy handles routing
+
 services:
   nextcloud:
+    container_name: nextcloud
+    ports: !override []  # Override and clear all port bindings
     volumes:
       - /media/bommel/syncthing:/external-data
     networks:
-      - default
-      - web
+      - default  # Internal (db, redis)
+      - web      # External tunnel network
 
 networks:
   web:
