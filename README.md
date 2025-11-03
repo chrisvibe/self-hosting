@@ -211,3 +211,44 @@ cd services/matrix
 - Keep services updated regularly
 - Monitor logs for suspicious activity
 - Consider using Docker secrets for production deployments
+
+## Split-Horizon DNS Fix
+
+**Problem**: HTTPS requests were slow (~60s timeout) when using local DNS overrides because clients queried IPv6 (AAAA) records, got Cloudflare's IPv6 addresses, timed out, then fell back to IPv4.
+
+**Solution**: In OpenWrt `/etc/dnsmasq.conf`, add:
+```
+address=/subdomain.domain.com/192.168.1.123
+local=/subdomain.domain.com/
+```
+
+This blocks upstream DNS forwarding for these domains, preventing IPv6 lookups from reaching Cloudflare.
+
+## Let's Encrypt Certificates Setup
+
+### 1. Create Cloudflare API Token
+1. Go to: https://dash.cloudflare.com/profile/api-tokens
+2. **Create Token** → Use template **"Edit zone DNS"**
+3. Zone: `yourdomain.com`
+4. **Create** and copy token
+
+### 2. Configure Certbot
+```bash
+cd ~/self-hosting
+mkdir -p certbot/{config,work,logs,ssl}
+
+cat > certbot/cloudflare.ini << 'EOF'
+dns_cloudflare_api_token = YOUR_TOKEN_HERE
+EOF
+
+chmod 600 certbot/cloudflare.ini
+```
+
+### 3. Start Certbot
+```bash
+docker compose up -d certbot
+docker logs -f certbot  # Wait for "Successfully received certificate"
+docker compose restart proxy
+```
+
+**Done!** Certificates auto-renew every 90 days.

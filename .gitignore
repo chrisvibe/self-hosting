@@ -6,4 +6,10 @@
 services/
 
 nginx/conf.d/
-nginx/ssl/
+
+# Certbot
+certbot/config/
+certbot/work/
+certbot/logs/
+certbot/ssl/
+certbot/cloudflare.ini
