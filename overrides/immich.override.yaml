@@ -1,0 +1,16 @@
+# Immich service override for self-hosting infrastructure
+# This connects Immich server to the shared tunnel network
+
+services:
+  immich-server:
+    container_name: immich-server
+    networks:
+      - default  # Internal Immich network
+      - web      # External tunnel network (shared)
+    # Remove port exposure since Cloudflare handles this
+    ports: []
+
+networks:
+  web:
+    external: true
+    name: web

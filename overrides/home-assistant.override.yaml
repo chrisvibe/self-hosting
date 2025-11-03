@@ -1,0 +1,10 @@
+services:
+  homeassistant:
+    networks:
+      - default  # Internal HA network
+      - web      # Tunnel network
+
+networks:
+  web:
+    external: true
+    name: web

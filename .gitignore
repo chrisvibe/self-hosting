@@ -1,0 +1,6 @@
+# Environment file with sensitive data
+.env
+
+# All service directories are submodules
+# They manage their own .gitignore files
+services/

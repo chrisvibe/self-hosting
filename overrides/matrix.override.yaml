@@ -1,0 +1,17 @@
+# Matrix service override for self-hosting infrastructure
+# This file connects Matrix nginx to the shared tunnel network
+# Store in: self-hosting/overrides/matrix.override.yaml
+
+services:
+  nginx:
+    container_name: matrix-nginx
+    networks:
+      - net        # Internal Matrix network (from base compose)
+      - web        # External tunnel network (shared)
+
+networks:
+  web:
+    external: true
+    name: web
+  net:
+    # References the 'net' network from matrix docker-compose.yaml

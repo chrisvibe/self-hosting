@@ -1,0 +1,14 @@
+# Syncthing service override for self-hosting infrastructure
+# Symlink to: ~/self-hosting/services/syncthing/docker-compose.override.yaml
+
+services:
+  syncthing:
+    volumes:
+      - /media/bommel/syncthing:/syncthing/external
+    networks:
+      - default
+
+networks:
+  web:
+    external: true
+    name: web

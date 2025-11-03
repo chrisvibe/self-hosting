@@ -1,0 +1,12 @@
+services:
+  nextcloud:
+    volumes:
+      - /media/bommel/syncthing:/external-data
+    networks:
+      - default
+      - web
+
+networks:
+  web:
+    external: true
+    name: web
