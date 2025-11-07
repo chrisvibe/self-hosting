@@ -8,7 +8,7 @@ services:
       - default  # Internal Immich network
       - web      # External tunnel network (shared)
     # Remove port exposure since Cloudflare handles this
-    ports: []
+    ports: !override []
 
 networks:
   web:

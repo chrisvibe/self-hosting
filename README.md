@@ -220,9 +220,11 @@ cd services/matrix
 ```
 address=/subdomain.domain.com/192.168.1.123
 local=/subdomain.domain.com/
+/etc/init.d/dnsmasq restart
 ```
 
 This blocks upstream DNS forwarding for these domains, preventing IPv6 lookups from reaching Cloudflare.
+Also add a block for the service in nginx reverse proxy which intercepts call to cloudflare and re-routes to local docker container.
 
 ## Let's Encrypt Certificates Setup
 

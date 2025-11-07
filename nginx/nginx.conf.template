@@ -25,6 +25,11 @@ http {
         keepalive 32;
     }
 
+    upstream immich_backend {
+        server immich-server:2283 max_fails=3 fail_timeout=30s;
+        keepalive 32;
+    }
+
     # Matrix server
     server {
         listen 80;
@@ -38,7 +43,7 @@ http {
         ssl_session_cache shared:SSL:10m;
         ssl_session_timeout 10m;
 
-        client_max_body_size 50M;
+        client_max_body_size 500M;
 
         location / {
             proxy_pass http://matrix_backend;
@@ -69,7 +74,7 @@ http {
         ssl_session_cache shared:SSL:10m;
         ssl_session_timeout 10m;
 
-        client_max_body_size 512M;
+        client_max_body_size 50G;
 
         location / {
             proxy_pass http://nextcloud_backend;
@@ -90,6 +95,40 @@ http {
         }
     }
 
+    # Immich server
+    server {
+        listen 80;
+        listen 443 ssl;
+        server_name immich.DOMAIN;
+
+        ssl_certificate /etc/nginx/ssl/cert.pem;
+        ssl_certificate_key /etc/nginx/ssl/key.pem;
+        ssl_protocols TLSv1.2 TLSv1.3;
+        ssl_prefer_server_ciphers on;
+        ssl_session_cache shared:SSL:10m;
+        ssl_session_timeout 10m;
+
+        client_max_body_size 50G;
+
+        location / {
+            proxy_pass http://immich_backend;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Forwarded-Server $host;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_connect_timeout 5s;
+            proxy_send_timeout 60s;
+            proxy_read_timeout 900s;
+            proxy_buffering off;
+            proxy_request_buffering off;
+        }
+    }
+
     # Default server
     server {
         listen 80 default_server;
@@ -100,7 +139,7 @@ http {
         ssl_certificate_key /etc/nginx/ssl/key.pem;
 
         location / {
-            return 200 "Local reverse proxy running\nServices:\n- matrix.DOMAIN\n- nextcloud.DOMAIN\n";
+            return 200 "Local reverse proxy running\nServices:\n- matrix.DOMAIN\n- nextcloud.DOMAIN\n- immich.DOMAIN\n";
             add_header Content-Type text/plain;
         }
     }
