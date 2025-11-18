@@ -41,6 +41,34 @@ services:
       - cloudflared
       - certbot
 
+  gotify:
+    # default is admin admin on first start, sends notifications apps → clients
+    # in gui make an app like: docker updates - receives notifications from WUD
+    # curl -X POST "http://elis.lan:8000/message?token=client_token" -d "title=Test&message=HELOOOOO&priority=3"
+    image: gotify/server:latest
+    container_name: gotify
+    ports:
+      - "8000:80"
+    volumes:
+      - gotify_data:/app/data
+    restart: unless-stopped
+
+  wud:
+    image: getwud/wud:latest
+    container_name: wud
+    environment:
+      - WUD_TRIGGER_DOCKER_AUTO_UPDATE=false
+      - WUD_TRIGGER_DOCKER_Local_PRUNE=false
+      - WUD_NOTIFY_GOTIFY_TOKEN=${GOTIFY_TOKEN}
+      - WUD_NOTIFY_GOTIFY_URL=http://gotify:80
+      - WUD_DEBUG=true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+
+volumes:
+  gotify_data:
+
 networks:
   web:
     external: true
