@@ -13,7 +13,7 @@ Internet → Cloudflare Tunnel → Docker Network → Services
                                                  └─ ...
 ```
 
-## Project Structure
+## Project Structure example
 
 ```
 self-hosting/
@@ -126,39 +126,6 @@ For each new service:
 4. Configure service
 5. Add Cloudflare route
 
-## Service Management
-
-### View all running services
-```bash
-docker ps
-```
-
-### View tunnel logs
-```bash
-docker compose logs -f cloudflared
-```
-
-### Service-specific logs
-```bash
-docker compose -f services/matrix/docker-compose.yaml logs -f
-```
-
-### Restart a service
-```bash
-cd services/matrix
-docker compose restart
-```
-
-### Stop everything
-```bash
-# Stop tunnel
-docker compose down
-
-# Stop individual service
-cd services/matrix
-docker compose down
-```
-
 ## Network Architecture
 
 - **web network**: Shared bridge network that all services and the tunnel join
@@ -171,12 +138,6 @@ docker compose down
 ```bash
 cd services/matrix
 git pull
-docker compose pull
-docker compose up -d
-```
-
-### Update Tunnel
-```bash
 docker compose pull
 docker compose up -d
 ```
@@ -252,5 +213,21 @@ docker compose up -d certbot
 docker logs -f certbot  # Wait for "Successfully received certificate"
 docker compose restart proxy
 ```
-
 **Done!** Certificates auto-renew every 90 days.
+
+## Monitor Versions with WUD and Gotify
+
+1. Create Gotify App Token
+   - Open browser: `https://gotify.yourdomain.com`
+   - Login: `admin` / `admin`
+   - **Apps** → **Create App** (e.g., "Docker Updates")
+   - Copy token → Add to `.env`: `GOTIFY_TOKEN=<token>`
+   - Restart WUD: `docker compose restart wud`
+
+2. Test notification
+   ```bash
+   curl -X POST "https://gotify.yourdomain.com/message?token=YOUR_APP_TOKEN" \
+     -d "title=Test&message=It works!&priority=3"
+   ```
+
+Notifications now appear on your phone and browser clients connected to Gotify.
