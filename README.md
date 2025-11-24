@@ -230,4 +230,20 @@ docker compose restart proxy
      -d "title=Test&message=It works!&priority=3"
    ```
 
+3. Add WUD Monitoring to Service Overrides
+
+Add WUD labels to your override files to monitor specific containers:
+
+**Example: `overrides/matrix.override.yaml`**
+```yaml
+services:
+  synapse:
+    labels:
+      - "wud.watch=true"
+      - "wud.tag.include=^v1\\.2\\.\\d+$$"  # v1.2.x only
+    networks:
+      - net
+      - web
+```
+
 Notifications now appear on your phone and browser clients connected to Gotify.

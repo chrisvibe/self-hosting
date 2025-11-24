@@ -9,6 +9,10 @@ services:
       # Remove HTTP port - proxy handles it
       # Keep federation port exposed directly (needs SSL)
       - "${LOCAL_IP}:8448:8448"
+    synapse:
+    labels:
+      - "wud.watch=true"
+      - "wud.tag.include=^v\\d+\\.\\d+\\.\\d+$$"
     networks:
       - net        # Internal Matrix network (from base compose)
       - web        # External tunnel network (shared)

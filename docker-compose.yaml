@@ -1,6 +1,6 @@
 services:
   cloudflared:
-    image: cloudflare/cloudflared:latest
+    image: cloudflare/cloudflared:2024.11.1
     container_name: cloudflared
     restart: unless-stopped
     command: tunnel run
@@ -10,7 +10,7 @@ services:
       - web
 
   certbot:
-    image: certbot/dns-cloudflare:latest
+    image: certbot/dns-cloudflare:v5.1.0
     container_name: certbot
     volumes:
       - ./certbot/config:/etc/letsencrypt
@@ -26,7 +26,7 @@ services:
       - web
 
   proxy:
-    image: nginx:alpine
+    image: nginx:1.29-alpine
     container_name: lan-proxy
     restart: unless-stopped
     ports:
@@ -42,7 +42,7 @@ services:
       - certbot
 
   gotify:
-    image: gotify/server:latest
+    image: gotify/server:2.7.3
     container_name: gotify
     volumes:
       - gotify_data:/app/data
@@ -54,14 +54,26 @@ services:
     image: getwud/wud:latest
     container_name: wud
     environment:
-      - WUD_TRIGGER_DOCKER_AUTO_UPDATE=false
-      - WUD_TRIGGER_DOCKER_Local_PRUNE=false
-      - WUD_NOTIFY_GOTIFY_TOKEN=${GOTIFY_TOKEN}
-      - WUD_NOTIFY_GOTIFY_URL=http://gotify:80
-      - WUD_DEBUG=true
+      # CRITICAL: Disable all automatic actions
+      - WUD_TRIGGER=false
+
+      # Gotify notifications
+      - WUD_TRIGGER_GOTIFY_GOTIFY_URL=http://gotify:80
+      - WUD_TRIGGER_GOTIFY_GOTIFY_TOKEN=${GOTIFY_TOKEN}
+
+      # Only watch containers with wud.watch=true label
+      - WUD_WATCHER_DOCKER_WATCHBYDEFAULT=false
+
+      # Check every 12 hours (adjust as needed)
+      - WUD_WATCHER_DOCKER_CRON=0 */12 * * *
+
+      # Info level logging
+      - WUD_LOG_LEVEL=info
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     restart: unless-stopped
+    networks:
+      - web
 
 volumes:
   gotify_data:
