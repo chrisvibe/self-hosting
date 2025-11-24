@@ -5,6 +5,9 @@
 services:
   nginx:
     container_name: matrix-nginx
+    labels:
+      - "wud.watch=true"
+      - "wud.tag.include=.*-alpine$$"  # Alpine variants only
     ports: !override
       # Remove HTTP port - proxy handles it
       # Keep federation port exposed directly (needs SSL)
@@ -12,10 +15,21 @@ services:
     networks:
       - net        # Internal Matrix network (from base compose)
       - web        # External tunnel network (shared)
+
   synapse:
     labels:
       - "wud.watch=true"
-      - "wud.tag.include=^v\\d+\\.\\d+\\.\\d+$$"
+      - "wud.tag.include=^v.*"  # Versions starting with v
+
+  db:
+    labels:
+      - "wud.watch=true"
+      - "wud.tag.include=.*-alpine$$"  # Alpine variants only
+
+  element:
+    labels:
+      - "wud.watch=true"
+      - "wud.tag.include=^v.*"  # Versions starting with v
 
 networks:
   web:
