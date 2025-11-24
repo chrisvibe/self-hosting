@@ -6,8 +6,11 @@ services:
   nginx:
     container_name: matrix-nginx
     labels:
-      - "wud.watch=true"
-      - "wud.tag.include=.*-alpine$$"  # Alpine variants only
+      - 'wud.watch=true'
+      - 'wud.tag.include=^\d+(\.\d+)*-alpine$'     # Only numeric-alpine tags
+      - 'wud.tag.exclude=.*(rc|alpha|beta).*$'     # Exclude tags with non-numeric suffixes
+
+
     ports: !override
       # Remove HTTP port - proxy handles it
       # Keep federation port exposed directly (needs SSL)
@@ -18,18 +21,22 @@ services:
 
   synapse:
     labels:
-      - "wud.watch=true"
-      - "wud.tag.include=^v.*"  # Versions starting with v
+      - 'wud.watch=true'
+      - 'wud.tag.include=^v\d+(\.\d+)*$'      # Only numeric versions, v1.2.3, v1.143.0
+      - 'wud.tag.exclude=.*(rc|alpha|beta).*$' # Exclude any tags containing rc, alpha, beta
 
   db:
     labels:
-      - "wud.watch=true"
-      - "wud.tag.include=.*-alpine$$"  # Alpine variants only
+      - 'wud.watch=true'
+      - 'wud.tag.include=^\d+(\.\d+)*-alpine$'     # Only numeric-alpine tags
+      - 'wud.tag.exclude=.*(rc|alpha|beta).*$'     # Exclude tags with non-numeric suffixes
 
   element:
     labels:
-      - "wud.watch=true"
-      - "wud.tag.include=^v.*"  # Versions starting with v
+      - 'wud.watch=true'
+      - 'wud.tag.include=^v\d+(\.\d+)*$'      # Only numeric versions, v1.2.3, v1.143.0
+      - 'wud.tag.exclude=.*(rc|alpha|beta).*$' # Exclude any tags containing rc, alpha, beta
+
 
 networks:
   web:
