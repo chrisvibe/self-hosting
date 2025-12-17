@@ -1,130 +1,81 @@
 # Self-Hosting Infrastructure
-Personal self-hosted services infrastructure using Cloudflare Tunnel.
+Personal self-hosted services infrastructure with optional Cloudflare Tunnel and Tailscale integration.
 
-# install
+# Install
+```bash
 git clone --recursive git@github.com:chrisvibe/self-hosting.git
+```
 
 ## Architecture
 
 ```
-Internet → Cloudflare Tunnel → Docker Network → Services
-                                  (web)          ├─ Matrix
-                                                 ├─ Syncthing
-                                                 └─ ...
+Internet → [Optional: Cloudflare Tunnel] → Docker Network (web) → Services
+                                                                   ├─ Service 1
+                                                                   ├─ Service 2
+                                                                   └─ ...
 ```
 
-## Project Structure example
+**Note**: If not using Cloudflare Tunnel, handle SSL termination yourself (Let's Encrypt, nginx reverse proxy, etc.)
+
+## Project Structure
 
 ```
 self-hosting/
-├── docker-compose.yaml          # Cloudflare tunnel
-├── env_template / .env          # Tunnel token
+├── docker-compose.yaml          # [Optional] Cloudflare tunnel
+├── env_template / .env          # [Optional] Tunnel token
 ├── overrides/                   # Service network overrides
-│   └── matrix.override.yaml
+│   └── service.override.yaml
 ├── scripts/                     # Setup scripts
-│   └── setup-matrix.sh
+│   └── setup-service.sh
 └── services/                    # Cloned service repos (gitignored)
-    └── matrix/                  # Created by setup script
+    └── service-name/            # Created by setup script
 ```
 
 ## Initial Setup
 
-### 1. Create Cloudflare Tunnel
-
-1. Log into Cloudflare Dashboard
-2. Go to **Zero Trust** → **Networks** → **Tunnels**
-3. Create a new tunnel (choose Docker connector)
-4. Copy the tunnel token
-
-### 2. Configure Environment
-
-```bash
-cp env_template .env
-```
-
-Edit `.env` and add your tunnel token:
-```bash
-CLOUDFLARE_TUNNEL_TOKEN='your_token_here'
-```
-
-### 3. Create Shared Network
+### 1. Create Shared Network
 
 ```bash
 docker network create web
 ```
 
-### 4. Start Tunnel
+### 2. (Optional) Configure Cloudflare Tunnel
 
-```bash
-docker compose up -d
-```
+If exposing services to the internet via Cloudflare:
 
-The tunnel is now running and waiting for service configurations.
-
-## Adding Services
-
-### Matrix Server
-
-1. **Run setup script:**
+1. Log into Cloudflare Dashboard
+2. Go to **Zero Trust** → **Networks** → **Tunnels**
+3. Create a new tunnel (choose Docker connector)
+4. Copy the tunnel token
+5. Configure environment:
    ```bash
-   ./scripts/setup-matrix.sh
+   cp env_template .env
+   # Edit .env and add: CLOUDFLARE_TUNNEL_TOKEN='your_token_here'
    ```
-
-   This will:
-   - Clone the matrix-server repository
-   - Symlink the network override
-   - Create initial .env file
-
-2. **Configure Matrix:**
-   ```bash
-   cd services/matrix
-   # Edit .env with your domain and passwords
-   nano .env
-   ```
-
-3. **Follow Matrix setup:**
-   Follow the instructions in `services/matrix/README.md` for initial configuration:
-   - Generate Synapse config
-   - Configure PostgreSQL
-   - Generate nginx and Element configs
-
-4. **Start Matrix:**
+6. Start tunnel:
    ```bash
    docker compose up -d
    ```
 
-5. **Configure Cloudflare routes:**
-   
-   In Cloudflare Dashboard → Zero Trust → Networks → Tunnels → [Your Tunnel] → Public Hostname:
+## Adding Services
 
-   **Route 1 - Client traffic:**
-   - Subdomain: `matrix`
-   - Domain: `yourdomain.com`
-   - Service: `http://matrix-nginx:80`
+General pattern for each service:
 
-   **Route 2 - Federation:**
-   - Subdomain: `matrix`
-   - Domain: `yourdomain.com`
-   - Path: `/_matrix/federation/*`
-   - Service: `https://matrix-nginx:8448`
-   - Additional settings → TLS → Enable "No TLS Verify"
-
-   **Route 3 - Federation keys:**
-   - Subdomain: `matrix`
-   - Domain: `yourdomain.com`
-   - Path: `/_matrix/key/*`
-   - Service: `https://matrix-nginx:8448`
-   - Additional settings → TLS → Enable "No TLS Verify"
-
-### Other Services
-
-For each new service:
-
-1. Create override file in `overrides/`
-2. Create setup script in `scripts/`
+1. Create override file in `overrides/service.override.yaml`
+2. Create setup script in `scripts/setup-service.sh`
 3. Run setup script
-4. Configure service
-5. Add Cloudflare route
+4. Configure service in `services/service-name/`
+5. Start service: `cd services/service-name && docker compose up -d`
+6. (Optional) Add Cloudflare route if exposing publicly
+
+### Example: Matrix Server
+
+See Matrix as a reference implementation. The setup script:
+- Clones the service repository
+- Symlinks the network override
+- Creates initial `.env` file
+
+Then configure Cloudflare routes (if using tunnel) to point to the service's exposed container.
 
 ## Network Architecture
 
@@ -134,9 +85,8 @@ For each new service:
 
 ## Updating Services
 
-### Update Matrix
 ```bash
-cd services/matrix
+cd services/service-name
 git pull
 docker compose pull
 docker compose up -d
@@ -144,26 +94,16 @@ docker compose up -d
 
 ## Backup
 
-Each service should handle its own backups. For Matrix:
-
-```bash
-cd services/matrix
-./admin_tools/backup.sh
-```
+Each service should handle its own backups. Check service-specific documentation for backup procedures.
 
 ## Troubleshooting
 
 ### Service not accessible from internet
-1. Check tunnel is running: `docker compose ps`
-2. Verify Cloudflare route configuration
+1. If using Cloudflare: Check tunnel is running (`docker compose ps` in self-hosting root)
+2. If using Cloudflare: Verify route configuration in Cloudflare Dashboard
 3. Check service logs: `cd services/[service] && docker compose logs`
 4. Verify service is on `web` network: `docker network inspect web`
-
-### Federation not working (Matrix)
-1. Test with [Federation Tester](https://federationtester.matrix.org/)
-2. Verify both federation routes are configured in Cloudflare
-3. Check "No TLS Verify" is enabled for federation routes
-4. Check nginx logs: `docker compose -f services/matrix/docker-compose.yaml logs nginx`
+5. If not using Cloudflare: Verify your SSL termination and port forwarding
 
 ## Security Notes
 
@@ -173,9 +113,11 @@ cd services/matrix
 - Monitor logs for suspicious activity
 - Consider using Docker secrets for production deployments
 
-## Split-Horizon DNS Fix
+## Split-Horizon DNS (Optional - for tunnel users with local access)
 
-**Problem**: HTTPS requests were slow (~60s timeout) when using local DNS overrides because clients queried IPv6 (AAAA) records, got Cloudflare's IPv6 addresses, timed out, then fell back to IPv4.
+**Purpose**: Optimize local network access when using tunneling solutions (Cloudflare, Tailscale, etc.) by routing local clients directly to services instead of through external tunnels.
+
+**Problem**: Clients queried IPv6 (AAAA) records, got tunnel provider's addresses, timed out (~60s), then fell back to IPv4.
 
 **Solution**: In OpenWrt `/etc/dnsmasq.conf`, add:
 ```
@@ -184,16 +126,26 @@ local=/subdomain.domain.com/
 /etc/init.d/dnsmasq restart
 ```
 
-This blocks upstream DNS forwarding for these domains, preventing IPv6 lookups from reaching Cloudflare.
-Also add a block for the service in nginx reverse proxy which intercepts call to cloudflare and re-routes to local docker container.
+This blocks upstream DNS forwarding for these domains, preventing lookups from reaching tunnel providers. Also configure your local nginx reverse proxy to intercept these requests and route to local Docker containers.
 
-## Let's Encrypt Certificates Setup
+**If using Tailscale**: Tailscale's MagicDNS overrides local DNS. Force clients to use your router as primary DNS:
+```bash
+uci add_list dhcp.lan.dhcp_option="6,192.168.1.1"
+uci commit dhcp
+/etc/init.d/dnsmasq restart
+```
+
+This sets DHCP option 6 (DNS server) to your router's IP, ensuring split-horizon DNS takes precedence.
+
+## Let's Encrypt Certificates (Optional - for Cloudflare DNS challenge)
+
+If using Cloudflare for DNS but want to manage your own certificates:
 
 ### 1. Create Cloudflare API Token
 1. Go to: https://dash.cloudflare.com/profile/api-tokens
 2. **Create Token** → Use template **"Edit zone DNS"**
 3. Zone: `yourdomain.com`
-4. **Create** and copy token
+4. Copy token
 
 ### 2. Configure Certbot
 ```bash
@@ -213,9 +165,9 @@ docker compose up -d certbot
 docker logs -f certbot  # Wait for "Successfully received certificate"
 docker compose restart proxy
 ```
-**Done!** Certificates auto-renew every 90 days.
+Certificates auto-renew every 90 days.
 
-## Monitor Versions with WUD and Gotify
+## Monitor Versions with WUD and Gotify (Optional)
 
 1. Create Gotify App Token
    - Open browser: `https://gotify.yourdomain.com`
@@ -234,16 +186,20 @@ docker compose restart proxy
 
 Add WUD labels to your override files to monitor specific containers:
 
-**Example: `overrides/matrix.override.yaml`**
+**Example: `overrides/service.override.yaml`**
 ```yaml
 services:
-  synapse:
+  container-name:
     labels:
       - "wud.watch=true"
-      - "wud.tag.include=^v1\\.2\\.\\d+$$"  # v1.2.x only
+      - "wud.tag.include=^v1\\.2\\.\\d+$$"  # Regex for version filtering
     networks:
-      - net
+      - default
       - web
 ```
 
-Notifications now appear on your phone and browser clients connected to Gotify.
+Notifications appear on your phone and browser clients connected to Gotify.
+
+## Headscale + Tailscale (Optional - for redundant access)
+
+Deploy Headscale + Tailscale on a separate server for multiple entry points if Cloudflare tunnel goes down.

@@ -3,7 +3,7 @@ services:
   nextcloud:
     ports: !override []
     volumes:
-      - /media/bommel/syncthing:/external-data
+      - /media/bommel:/external-data
     networks:
       - default
       - web

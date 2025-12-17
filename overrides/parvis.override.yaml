@@ -1,0 +1,16 @@
+# Parvis service override for self-hosting infrastructure
+# This connects the nginx proxy to the shared tunnel network
+
+services:
+  nginx:
+    container_name: parvis
+    networks:
+      - default  # Internal parvis network (frontend, backend, db)
+      - web      # External tunnel network (shared)
+
+networks:
+  web:
+    external: true
+    name: web
+  default:
+    name: parvis_internal
