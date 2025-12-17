@@ -1,12 +1,17 @@
 # Parvis service override for self-hosting infrastructure
 # This connects the nginx proxy to the shared tunnel network
-
 services:
   nginx:
     container_name: parvis
     networks:
       - default  # Internal parvis network (frontend, backend, db)
       - web      # External tunnel network (shared)
+  
+  frontend:
+    environment:
+      - REACT_APP_API_URL=/api
+    # Build once, serve static files (no hot reload in production)
+    command: sh -c "npm run build && npx serve -s build -l 3000"
 
 networks:
   web:
