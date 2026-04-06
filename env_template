@@ -1,8 +1,14 @@
+# MAIN 
+LOCAL_IP=192.168.1.123
+DNS_IP=192.168.1.1
+DOMAIN=yourdomain.com
+
 # Cloudflare Tunnel Configuration
 CLOUDFLARE_TUNNEL_TOKEN='YOUR_CLOUDFLARE_TUNNEL_TOKEN_HERE'
 
-# Local Network Configuration
-LOCAL_IP=192.168.1.123
+# Gotify
+GOTIFY_TOKEN='your_secure_password_here'
 
-# Other
-DOMAIN=yourdomain.com
+# Pi-hole Configuration
+PIHOLE_PASSWORD='your_secure_password_here'
+TZ=America/New_York  # Change to your timezone

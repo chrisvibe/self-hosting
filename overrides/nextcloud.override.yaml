@@ -3,7 +3,8 @@ services:
   nextcloud:
     ports: !override []
     volumes:
-      - /media/bommel:/external-data
+      - /media/bommel:/external-data/bommel
+      - /media/cotton:/external-data/cotton
     networks:
       - default
       - web

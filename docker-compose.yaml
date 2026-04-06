@@ -12,6 +12,7 @@ services:
   certbot:
     image: certbot/dns-cloudflare:v5.1.0
     container_name: certbot
+    restart: unless-stopped
     volumes:
       - ./certbot/config:/etc/letsencrypt
       - ./certbot/work:/var/lib/letsencrypt
@@ -55,6 +56,7 @@ services:
   wud:
     image: getwud/wud:latest
     container_name: wud
+    restart: unless-stopped
     environment:
       # CRITICAL: Disable all automatic actions
       - WUD_TRIGGER=false
@@ -73,12 +75,36 @@ services:
       - WUD_LOG_LEVEL=info
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - web
+
+  pihole:
+    image: pihole/pihole:2025.11.1
+    container_name: pihole
     restart: unless-stopped
+    ports:
+      - "${LOCAL_IP}:53:53/tcp"
+      - "${LOCAL_IP}:53:53/udp"
+      - "${LOCAL_IP}:8090:80/tcp"
+      - "100.64.0.1:53:53/tcp"      # Add Tailscale DNS
+      - "100.64.0.1:53:53/udp"      # Add Tailscale DNS
+    environment:
+      - TZ=${TZ}
+      - FTLCONF_webserver_api_password=${PIHOLE_PASSWORD}
+      - FTLCONF_dns_listeningMode=all
+      - FTLCONF_dns_upstreams=192.168.1.1
+      - VIRTUAL_HOST=${LOCAL_IP}
+    volumes:
+      - pihole_config:/etc/pihole
+    labels:
+      - 'wud.watch=true'
+      - 'wud.tag.include=^\d{4}\.\d{2}\.\d+$'
     networks:
       - web
 
 volumes:
   gotify_data:
+  pihole_config:
 
 networks:
   web:
