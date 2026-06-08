@@ -6,12 +6,23 @@ services:
     networks:
       - default  # Internal parvis network (frontend, backend, db)
       - web      # External tunnel network (shared)
-  
+
   frontend:
     environment:
       - REACT_APP_API_URL=/api
     # Build once, serve static files (no hot reload in production)
     command: sh -c "npm run build && npx serve -s build -l 3000"
+
+# Infra integration: back parvis's DB dumps with the NAS (different physical medium
+# than the DB's local disk). Only the volume *definition* changes here; the base
+# compose already mounts parvis_backups into the backup sidecar.
+volumes:
+  parvis_backups:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: ${NFS_OPTIONS}
+      device: ${NAS_PARVIS_BACKUP_PATH}
 
 networks:
   web:
