@@ -13,3 +13,15 @@ networks:
   web:
     external: true
     name: web
+
+# Infra integration: back nextcloud's backups (DB dump + config.php archive) with the NAS —
+# a different physical medium than the DB/app volumes' local disk. Only the volume
+# *definition* changes here; the base compose already mounts nextcloud_backups into the
+# backup sidecar. Reuses the existing NFS_OPTIONS already defined for nextcloud_data.
+volumes:
+  nextcloud_backups:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: ${NFS_OPTIONS}
+      device: ${NAS_NEXTCLOUD_BACKUP_PATH}
