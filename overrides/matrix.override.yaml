@@ -44,3 +44,15 @@ networks:
     name: web
   net:
     # References the 'net' network from matrix docker-compose.yaml
+
+# Infra integration: back matrix's backups (DB dumps + synapse_data archives) with the
+# NAS — a different physical medium than the volumes' local disk. Only the volume
+# *definition* changes here; the base compose already mounts matrix_backups into the
+# backup sidecar.
+volumes:
+  matrix_backups:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: ${NFS_OPTIONS}
+      device: ${NAS_MATRIX_BACKUP_PATH}
