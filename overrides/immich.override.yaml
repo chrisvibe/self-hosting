@@ -14,3 +14,16 @@ networks:
   web:
     external: true
     name: web
+
+# Infra integration: back immich's DB dump with the NAS — a different physical medium than the
+# DB's local disk (DB_DATA_LOCATION bind mount). Only the volume *definition* changes here; the
+# base compose already mounts immich_backups into the backup sidecar. Reuses the existing
+# NFS_OPTIONS already defined for immich_upload.
+# NOTE: the photo LIBRARY itself still lives only on the NAS — see review/immich/TODO_photo_backup.md.
+volumes:
+  immich_backups:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: ${NFS_OPTIONS}
+      device: ${NAS_IMMICH_BACKUP_PATH}
