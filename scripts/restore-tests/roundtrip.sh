@@ -11,7 +11,7 @@
 set -uo pipefail
 
 SERVICES="${1:-all}"
-[ "$SERVICES" = "all" ] && SERVICES="parvis nextcloud matrix immich"
+[ "$SERVICES" = "all" ] && SERVICES="parvis nextcloud matrix immich home-assistant"
 REPO_BASE=/home/elis/self-hosting/services
 FP_SQL=/tmp/bkptest/fp.sql
 TESTPW=bkptest_pw
@@ -41,10 +41,16 @@ test_db() {
   echo "--- DB restore: $svc (restore-img=$img db=$db user=$user kind=$kind) ---"
   docker rm -f "$ct" >/dev/null 2>&1 || true
 
+  # Read-only prod fingerprint BEFORE the dump, so the dump (and thus the restored copy) is
+  # bracketed by before <= dump <= after even for high-write DBs (e.g. the HA recorder, which
+  # writes continuously — a dump taken before this reading would land just under the bracket).
+  echo "[1] read-only prod fingerprint (before)"
+  fp_before="$(fp_prod "$prodc" "$db")"; echo "    prod(before) = $fp_before"
+
   # Fresh dump via a THROWAWAY backup container on the prod DB network (pg_dump/pg_dumpall are
   # read-only on prod). We don't exec the deployed sidecar because its /scripts bind mount went
   # stale after the scripts dir was rewritten; this also re-proves the deployed backup_db.sh.
-  echo "[1] fresh non-destructive dump via throwaway backup container on net=$net (host=$prodc)"
+  echo "[2] fresh non-destructive dump via throwaway backup container on net=$net (host=$prodc)"
   PW="$(docker exec "$prodc" printenv POSTGRES_PASSWORD)"
   if ! docker run --rm --network "$net" \
         -e POSTGRES_HOST="$prodc" -e POSTGRES_PORT=5432 \
@@ -54,9 +60,6 @@ test_db() {
         "$bimg" sh /scripts/backup_db.sh >/dev/null 2>&1; then
     c_red "FAIL: fresh backup_db.sh errored"; return 1
   fi
-
-  echo "[2] read-only prod fingerprint (before)"
-  fp_before="$(fp_prod "$prodc" "$db")"; echo "    prod  = $fp_before"
 
   echo "[3] start throwaway container + wait ready"
   docker run -d --name "$ct" \
@@ -159,6 +162,7 @@ for svc in $SERVICES; do
                out="$(test_tar matrix matrix_backups synapse_data restore_data.sh DATA_DIR data tubiformis.work.signing.key '' tubiformis.work.signing.key 2>&1)"; echo "$out"
                echo "$out" | grep -q PASS-INNER && c_grn "    PASS data: matrix" || { c_red "    FAIL data: matrix"; rc=1; } ;;
     immich)    test_db immich    ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0 immich postgres immich_postgres immich_backups dumpall immich_default postgres:14-alpine || rc=1 ;;
+    home-assistant) test_db home-assistant postgres:16-alpine homeassistant homeassistant ha-postgres home-assistant_ha_backups fc home-assistant_default postgres:16-alpine || rc=1 ;;
   esac
   docker rm -f "bkptest-${svc}-db" >/dev/null 2>&1 || true
   [ "$rc" = 0 ] && c_grn ">>> $svc: ALL CHECKS PASSED" || { c_red ">>> $svc: FAILED"; RC_TOTAL=1; }
